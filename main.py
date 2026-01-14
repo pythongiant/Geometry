@@ -21,9 +21,12 @@ def main():
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     OUTPUT_DIR = Path("outputs")
     OUTPUT_DIR.mkdir(exist_ok=True)
+    DEBUG_MODE = False  # Set to True for verbose debugging
     
     print(f"Device: {DEVICE}")
     print(f"Model: {MODEL_NAME}")
+    print(f"PyTorch version: {torch.__version__}")
+    print(f"CUDA available: {torch.cuda.is_available()}")
     
     # (1) Load data
     print("\n=== Loading ClearHarm Dataset ===")
@@ -37,6 +40,13 @@ def main():
     # (2) Extract representations
     print("\n=== Extracting Residual Stream Activations ===")
     extractor = ResidualStreamExtractor(MODEL_NAME, device=DEVICE)
+    
+    # Test extraction on a single prompt first
+    print("\nTesting extraction on first prompt...")
+    test_rep = extractor.extract_single(harmful_prompts[0])
+    if test_rep is None:
+        raise RuntimeError("Failed to extract representation from test prompt. Check model compatibility.")
+    print(f"Test extraction successful: shape {test_rep.shape}")
     
     harmful_reps = extractor.extract_batch(harmful_prompts)
     refusal_reps = extractor.extract_batch(refusal_prompts)

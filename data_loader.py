@@ -21,30 +21,46 @@ def load_clearharm_data(
     Returns:
         (harmful_prompts, refusal_prompts)
     """
+    print("Loading ClearHarm dataset...")
     dataset = load_dataset("AlignmentResearch/ClearHarm", split="train")
+    print(f"Dataset loaded with {len(dataset)} total entries")
     
     # Extract harmful prompts
     harmful_prompts = []
+    filtered_count = 0
     
     for item in dataset:
-        prompt = item.get("prompt", "")
+       
+        prompt = item.get("content", "")[0]
         
         # Robust filtering
         if not isinstance(prompt, str):
+            filtered_count += 1
             continue
         
         prompt = prompt.strip()
         
         if len(prompt) < min_length:
+            filtered_count += 1
             continue
         
         if not prompt or prompt.isspace():
+            filtered_count += 1
             continue
         
         harmful_prompts.append(prompt)
         
         if len(harmful_prompts) >= n_samples:
             break
+    
+    print(f"Filtered out {filtered_count} invalid prompts")
+    print(f"Collected {len(harmful_prompts)} valid harmful prompts")
+    
+    if len(harmful_prompts) == 0:
+        raise ValueError("No valid prompts found in dataset. Check filtering criteria.")
+    
+    # Show sample
+    print(f"\nSample prompt: {harmful_prompts[0][:100]}...")
     
     # Construct refusal-conditioned prompts
     refusal_prompts = [

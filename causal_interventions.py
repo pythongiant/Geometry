@@ -6,6 +6,7 @@ import torch
 from transformer_lens import HookedTransformer
 from typing import List
 from tqdm import tqdm
+from functools import partial
 
 class ResidualRepairHook:
     def __init__(self, model: HookedTransformer, harm_direction: torch.Tensor):
@@ -86,12 +87,13 @@ class ResidualRepairHook:
         
         tokens = self.model.to_tokens(prompt)
         
+        # Use context manager to add hook
         with torch.no_grad():
-            _, cache = self.model.run_with_cache(
-                tokens,
-                names_filter=[hook_name],
-                fwd_hooks=[(hook_name, self.repair_hook)]
-            )
+            with self.model.hooks(fwd_hooks=[(hook_name, self.repair_hook)]):
+                _, cache = self.model.run_with_cache(
+                    tokens,
+                    names_filter=[hook_name]
+                )
         
         # Extract post-intervention representation
         resid_post = cache[hook_name][0, -1, :]
